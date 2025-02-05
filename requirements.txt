@@ -4,4 +4,4 @@ pydantic
 pydantic[email]
 sqlalchemy
 python-dotenv
-
+pyodbc

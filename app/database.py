@@ -8,6 +8,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+import pyodbc
+from sqlalchemy.engine import URL
+
 
 Base = declarative_base()
 
@@ -39,8 +42,36 @@ class ContactMessage(Base):
     created_at = Column(DateTime, default=datetime.now)
     email_sent = Column(Boolean, default=False)
 
-# Database setup
-engine = create_engine('sqlite:///database.db')
+
+module_dir = os.path.dirname(__file__)
+env_path = os.path.join(module_dir, ".env")
+
+load_dotenv(env_path)
+
+
+db_server = os.getenv("DB_SERVER")
+db_name = os.getenv("DB_NAME")
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_driver = os.getenv("DB_DRIVER") 
+
+
+connection_string = f"""
+    DRIVER={{{db_driver}}};
+    SERVER={db_server};
+    DATABASE={db_name};
+    UID={db_user};
+    PWD={db_password};
+    Encrypt=No;
+    TrustServerCertificate=no;
+    Connection Timeout=30;
+"""
+
+connection_url = URL.create(
+    "mssql+pyodbc",
+    query={"odbc_connect": connection_string}
+)
+engine = create_engine(connection_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -86,10 +117,10 @@ def send_email_notification(message):
         if None in [smtp_server, smtp_port, smtp_user, smtp_password]:
             raise ValueError("Missing email configuration in environment variables")
 
-        # Convert port to integer
+
         smtp_port = int(smtp_port)
 
-        # Create email message
+
         msg = MIMEMultipart()
         msg['From'] = smtp_user
         msg['To'] = os.getenv("NOTIFICATION_EMAIL")
